@@ -1,9 +1,13 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net"
-	tcpprotocol "proxy/internal/tcp-protocol"
+	"os/signal"
+	"proxy/internal/proxy"
+	"syscall"
+	"time"
 )
 
 func main() {
@@ -12,14 +16,26 @@ func main() {
 		panic(err)
 	}
 	defer listener.Close()
-	fmt.Println("Listen on port 8080")
-	for {
-		connection, err := listener.Accept()
-		if err != nil {
-			fmt.Println(err)
-			continue
-		}
-		tcpprotocol.Tunneling(connection)
-	}
 
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer cancel()
+	go func() {
+		for {
+			conn, err := listener.Accept()
+			if err != nil {
+				select {
+				case <-ctx.Done():
+					return
+				default:
+					continue
+				}
+			}
+			go proxy.HTTPTunneling(conn)
+		}
+	}()
+	<-ctx.Done()
+	fmt.Printf("\nShutdown signal received.\n")
+	time.Sleep(1 * time.Second)
+	listener.Close()
+	fmt.Printf("Proxy shutdowned gracefully.\n")
 }

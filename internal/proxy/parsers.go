@@ -1,8 +1,6 @@
-package tcpprotocol
+package proxy
 
-import (
-	"strings"
-)
+import "strings"
 
 type Request struct {
 	Method  string
@@ -11,27 +9,29 @@ type Request struct {
 	Headers map[string]string
 }
 
-func HttpParser(tcpData []byte) Request {
-	request := string(tcpData)
+func HttpParser(raw []byte) (Request, error) {
+	request := string(raw)
+
 	lines := strings.Split(request, "\r\n")
-	requestLine := lines[0]
-	parts := strings.Split(requestLine, " ")
+	requestLine := strings.Split(lines[0], " ")
+
 	headers := make(map[string]string)
+
 	for _, line := range lines[1:] {
 		if line == "" {
 			break
 		}
+
 		key, value, found := strings.Cut(line, ":")
-		if !found {
-			continue
+		if found {
+			headers[strings.TrimSpace(key)] = strings.TrimSpace(value)
 		}
-		headers[key] = strings.TrimSpace(value)
-	}
-	return Request{
-		Method:  parts[0],
-		Path:    parts[1],
-		Version: parts[2],
-		Headers: headers,
 	}
 
+	return Request{
+		Method:  requestLine[0],
+		Path:    requestLine[1],
+		Version: requestLine[2],
+		Headers: headers,
+	}, nil
 }
