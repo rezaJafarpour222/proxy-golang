@@ -19,8 +19,7 @@ func main() {
 			fmt.Println(err)
 			continue
 		}
-		fmt.Println("Client connected:", connection.RemoteAddr())
-		tcpprotocol.HandleConnection(connection)
+		tcpprotocol.Tunneling(connection)
 	}
 
 }

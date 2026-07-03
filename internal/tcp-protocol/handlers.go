@@ -2,21 +2,26 @@ package tcpprotocol
 
 import (
 	"fmt"
+	"io"
 	"net"
 )
 
-func HandleConnection(conn net.Conn) error {
-	defer conn.Close()
-	buffer := make([]byte, 4096)
-	n, err := conn.Read(buffer)
+func Tunneling(clientConn net.Conn) {
+	defer clientConn.Close()
+
+	remoteConn, err := net.Dial("tcp", "example.com:80")
 	if err != nil {
-		return err
+		return
 	}
-	fmt.Printf("Read %d bytes\n", n)
-	fmt.Println("-------------------------")
-	fmt.Println(string(buffer[:n]))
-	fmt.Println("------------------------")
-	request := HttpParser(buffer[:n])
-	fmt.Print(request)
-	return nil
+	fmt.Println("Begin Reading The Stream From Client")
+
+	go func() {
+		io.Copy(remoteConn, clientConn)
+		defer remoteConn.Close()
+	}()
+
+	io.Copy(clientConn, remoteConn)
+
+	fmt.Println("Responded back")
+	fmt.Println("--------------------------------------")
 }
