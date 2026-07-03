@@ -9,19 +9,24 @@ import (
 func Tunneling(clientConn net.Conn) {
 	defer clientConn.Close()
 
-	remoteConn, err := net.Dial("tcp", "example.com:80")
+	buffer := make([]byte, 4096)
+	n, err := clientConn.Read(buffer)
 	if err != nil {
 		return
 	}
-	fmt.Println("Begin Reading The Stream From Client")
 
-	go func() {
-		io.Copy(remoteConn, clientConn)
-		defer remoteConn.Close()
-	}()
+	rawRequest := buffer[:n]
+	fmt.Println("--------------------------------------")
+	response := HttpParser(rawRequest)
+
+	fmt.Println("Responded back. From ", response.Headers["Host"])
+	remoteConn, err := net.Dial("tcp", response.Headers["Host"])
+	if err != nil {
+		return
+	}
+	defer remoteConn.Close()
+	go io.Copy(remoteConn, clientConn)
 
 	io.Copy(clientConn, remoteConn)
 
-	fmt.Println("Responded back")
-	fmt.Println("--------------------------------------")
 }
