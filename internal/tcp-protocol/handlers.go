@@ -12,9 +12,11 @@ func HandleConnection(conn net.Conn) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println("Read %d bytes", n)
+	fmt.Printf("Read %d bytes\n", n)
 	fmt.Println("-------------------------")
 	fmt.Println(string(buffer[:n]))
-	fmt.Println("-------------------------")
+	fmt.Println("------------------------")
+	request := HttpParser(buffer[:n])
+	fmt.Print(request)
 	return nil
 }
