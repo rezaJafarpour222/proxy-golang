@@ -6,8 +6,8 @@ import (
 	"net"
 	"os/signal"
 	"proxy/internal/proxy"
+	"sync"
 	"syscall"
-	"time"
 )
 
 func main() {
@@ -17,25 +17,30 @@ func main() {
 	}
 	defer listener.Close()
 
-	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer cancel()
-	go func() {
+	fmt.Println("Proxy listening on :8080")
+
+	serverCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+	var wg sync.WaitGroup
+	wg.Go(func() {
 		for {
 			conn, err := listener.Accept()
 			if err != nil {
 				select {
-				case <-ctx.Done():
+				case <-serverCtx.Done():
 					return
 				default:
 					continue
 				}
 			}
-			go proxy.HTTPTunneling(conn)
+			wg.Go(func() {
+				proxy.HTTPProxy(conn)
+			})
 		}
-	}()
-	<-ctx.Done()
-	fmt.Printf("\nShutdown signal received.\n")
-	time.Sleep(1 * time.Second)
+	})
+
+	<-serverCtx.Done()
+	fmt.Println("Shutting down...")
 	listener.Close()
-	fmt.Printf("Proxy shutdowned gracefully.\n")
+	wg.Wait()
 }
