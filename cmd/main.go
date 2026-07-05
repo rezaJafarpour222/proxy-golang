@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"os"
 	"os/signal"
 	"proxy/internal/proxy"
 	"sync"
@@ -11,13 +12,19 @@ import (
 )
 
 func main() {
-	listener, err := net.Listen("tcp", ":8080")
+
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	listener, err := net.Listen("tcp", ":"+port)
 	if err != nil {
 		panic(err)
 	}
 	defer listener.Close()
 
-	fmt.Println("Proxy listening on :8080")
+	fmt.Println("Proxy listening on :", port)
 
 	serverCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()

@@ -18,7 +18,6 @@ var dialer = &net.Dialer{
 }
 
 func HTTPProxy(clientConn net.Conn) {
-	time.Sleep(2 * time.Second)
 	defer clientConn.Close()
 
 	httpContext, cancel := context.WithCancel(context.Background())
@@ -31,13 +30,12 @@ func HTTPProxy(clientConn net.Conn) {
 		if err != nil {
 			return
 		}
-
 		if req.Method == http.MethodConnect {
 			handleHTTPS(httpContext, clientConn, req, cancel)
 			return
 		}
 
-		handleHTTP(httpContext, clientConn, req, cancel)
+		handleHTTP(httpContext, clientConn, req)
 
 		if req.Close {
 			return
@@ -45,7 +43,7 @@ func HTTPProxy(clientConn net.Conn) {
 	}
 }
 
-func handleHTTP(ctx context.Context, clientConn net.Conn, req *http.Request, cancel context.CancelFunc) {
+func handleHTTP(ctx context.Context, clientConn net.Conn, req *http.Request) {
 	host := req.Host
 	if host == "" {
 		writeBadRequest(clientConn)
