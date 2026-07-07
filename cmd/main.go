@@ -1,8 +1,8 @@
 package main
 
 import (
+	"crypto/tls"
 	"fmt"
-	"net"
 	"os"
 	"proxy/internal/proxy"
 	"runtime"
@@ -10,17 +10,29 @@ import (
 )
 
 func main() {
+	cert, err := tls.LoadX509KeyPair(
+		"cert.pem",
+		"key.pem",
+	)
+	if err != nil {
+		panic(err)
+	}
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
-	listener, err := net.Listen("tcp", ":"+port)
+	listener, err := tls.Listen(
+		"tcp",
+		":"+port,
+		&tls.Config{
+			Certificates: []tls.Certificate{cert},
+		},
+	)
 	if err != nil {
 		panic(err)
 	}
 	defer listener.Close()
 	fmt.Println("Listen on :", port)
-	fmt.Println("Listen on OS PORT :", os.Getenv("PORT"))
 	fmt.Println("GOMAXPROCS: ", runtime.GOMAXPROCS(0))
 	var wg sync.WaitGroup
 
