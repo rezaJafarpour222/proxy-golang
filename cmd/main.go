@@ -20,6 +20,7 @@ func main() {
 	}
 	defer listener.Close()
 	fmt.Println("Listen on :", port)
+	fmt.Println("Listen on OS PORT :", os.Getenv("PORT"))
 	fmt.Println("GOMAXPROCS: ", runtime.GOMAXPROCS(0))
 	var wg sync.WaitGroup
 
