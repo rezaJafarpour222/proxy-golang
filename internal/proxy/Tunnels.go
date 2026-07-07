@@ -3,7 +3,6 @@ package proxy
 import (
 	"bufio"
 	"context"
-	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -19,12 +18,9 @@ var dialer = &net.Dialer{
 
 func HTTPProxy(clientConn net.Conn) {
 	defer clientConn.Close()
-
 	httpContext, cancel := context.WithCancel(context.Background())
 	defer cancel()
-
 	reader := bufio.NewReader(clientConn)
-
 	for {
 		req, err := http.ReadRequest(reader)
 		if err != nil {
@@ -53,8 +49,6 @@ func handleHTTP(ctx context.Context, clientConn net.Conn, req *http.Request) {
 	if !strings.Contains(host, ":") {
 		host += ":80"
 	}
-
-	fmt.Println("Proxying->  HTTP:", req.Method, host, req.URL.Path)
 
 	remoteConn, err := dialer.DialContext(ctx, "tcp", host)
 	if err != nil {
@@ -87,7 +81,6 @@ func handleHTTP(ctx context.Context, clientConn net.Conn, req *http.Request) {
 }
 
 func handleHTTPS(ctx context.Context, clientConn net.Conn, req *http.Request, cancel context.CancelFunc) {
-	fmt.Println("Proxying HTTPS:", req.Host)
 
 	remoteConn, err := dialer.DialContext(ctx, "tcp", req.Host)
 	if err != nil {
@@ -117,6 +110,7 @@ func handleHTTPS(ctx context.Context, clientConn net.Conn, req *http.Request, ca
 	go func() {
 		defer closeAll()
 		io.Copy(clientConn, remoteConn)
+
 	}()
 
 	<-ctx.Done()

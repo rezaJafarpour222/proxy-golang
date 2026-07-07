@@ -1,47 +1,43 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"net"
-	"os/signal"
+	"os"
 	"proxy/internal/proxy"
+	"runtime"
 	"sync"
-	"syscall"
 )
 
 func main() {
-
-	listener, err := net.Listen("tcp", ":8080")
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	listener, err := net.Listen("tcp", ":"+port)
 	if err != nil {
 		panic(err)
 	}
 	defer listener.Close()
-
-	fmt.Println("Proxy listening on :8080")
-
-	serverCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer stop()
+	fmt.Println("Listen on :", port)
+	fmt.Println("GOMAXPROCS: ", runtime.GOMAXPROCS(0))
 	var wg sync.WaitGroup
+
 	wg.Go(func() {
+
 		for {
+			fmt.Println("goroutines:", runtime.NumGoroutine())
+
 			conn, err := listener.Accept()
 			if err != nil {
-				select {
-				case <-serverCtx.Done():
-					return
-				default:
-					continue
-				}
+				return
 			}
+
 			wg.Go(func() {
 				proxy.HTTPProxy(conn)
 			})
 		}
 	})
 
-	<-serverCtx.Done()
-	fmt.Println("Shutting down...")
-	listener.Close()
 	wg.Wait()
 }
