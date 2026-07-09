@@ -22,24 +22,24 @@ func HTTPProxy(clientConn net.Conn) {
 	defer cancel()
 	reader := bufio.NewReader(clientConn)
 	for {
+		clientConn.SetReadDeadline(time.Now().Add(30 * time.Second))
 		req, err := http.ReadRequest(reader)
 		if err != nil {
 			return
 		}
 		if req.Method == http.MethodConnect {
+			_ = clientConn.SetDeadline(time.Time{})
 			handleHTTPS(httpContext, clientConn, req, cancel)
 			return
 		}
-
-		handleHTTP(httpContext, clientConn, req)
-
+		handleHTTP(clientConn, req)
 		if req.Close {
 			return
 		}
 	}
 }
 
-func handleHTTP(ctx context.Context, clientConn net.Conn, req *http.Request) {
+func handleHTTP(clientConn net.Conn, req *http.Request) {
 	host := req.Host
 	if host == "" {
 		writeBadRequest(clientConn)
@@ -50,18 +50,12 @@ func handleHTTP(ctx context.Context, clientConn net.Conn, req *http.Request) {
 		host += ":80"
 	}
 
-	remoteConn, err := dialer.DialContext(ctx, "tcp", host)
+	remoteConn, err := dialer.Dial("tcp", host)
 	if err != nil {
 		writeBadGateway(clientConn)
 		return
 	}
 	defer remoteConn.Close()
-
-	go func() {
-		<-ctx.Done()
-		_ = clientConn.Close()
-		_ = remoteConn.Close()
-	}()
 
 	req.RequestURI = ""
 
@@ -97,9 +91,9 @@ func handleHTTPS(ctx context.Context, clientConn net.Conn, req *http.Request, ca
 
 	closeAll := func() {
 		once.Do(func() {
-			cancel()
 			_ = remoteConn.Close()
 			_ = clientConn.Close()
+			cancel()
 		})
 	}
 	go func() {
