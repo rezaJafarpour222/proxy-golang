@@ -13,7 +13,7 @@ import (
 )
 
 func main() {
-	cert, err := tls.LoadX509KeyPair("proxy-cert.pem", "proxy-key.pem")
+	cert, err := tls.LoadX509KeyPair("cert.pem", "key.pem")
 	if err != nil {
 		panic(err)
 	}
