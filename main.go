@@ -36,7 +36,6 @@ func main() {
 	defer listener.Close()
 
 	fmt.Println("Listening on:", port)
-	fmt.Println("GOMAXPROCS:", runtime.GOMAXPROCS(0))
 
 	// Listen for Ctrl+C or SIGTERM.
 	sigCh := make(chan os.Signal, 1)
@@ -60,6 +59,8 @@ func main() {
 
 	wg.Go(func() {
 		for {
+
+			fmt.Println("GOMAXPROCS:", runtime.GOMAXPROCS(0))
 			conn, err := listener.Accept()
 			if err != nil {
 				fmt.Println("Accept error:", err)
